@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendAI — Student</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#080c10;--surf:#0e1419;--border:#1c2530;--accent:#00e5a0;--blue:#0077ff;--red:#ff4560;--text:#c8d6e5;--muted:#4a6075;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;display:flex;flex-direction:column;}
+header{background:var(--surf);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:1rem;}.logo span{color:var(--accent);}
+.user-info{font-size:0.7rem;color:var(--muted);}
+.btn-logout{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:0.68rem;padding:6px 12px;border-radius:6px;cursor:pointer;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+main{flex:1;max-width:900px;margin:0 auto;padding:28px 20px;width:100%;}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px;}
+.stat{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:18px;position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:.5;}
+.stat.red::before{background:var(--red);}
+.stat.blue::before{background:var(--blue);}
+.stat-label{font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;}
+.stat-sub{font-size:0.62rem;color:var(--muted);margin-top:4px;}
+
+/* Scan */
+.scan-section{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;}
+.scan-title{font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem;margin-bottom:6px;}
+.scan-sub{font-size:0.72rem;color:var(--muted);margin-bottom:18px;}
+.scan-body{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+
+.cam-box{background:#050709;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.cam-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surf);border-bottom:1px solid var(--border);}
+#live-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+#live-dot.on{background:var(--accent);box-shadow:0 0 7px var(--accent);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.cam-label-txt{font-size:0.65rem;color:var(--muted);}
+#scan-stream{display:block;width:100%;max-height:280px;object-fit:contain;}
+
+.scan-info{}
+.info-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.78rem;}
+.info-row:last-child{border-bottom:none;}
+.info-key{color:var(--muted);}
+.info-val{color:var(--text);}
+
+.btn{padding:9px 20px;border:none;border-radius:7px;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.78rem;font-weight:500;transition:.15s;letter-spacing:.03em;}
+.btn:hover{opacity:.85;transform:translateY(-1px);}
+.btn-accent{background:var(--accent);color:#000;}
+.btn-ghost{background:var(--border);color:var(--text);}
+
+.scan-actions{display:flex;gap:10px;margin-top:14px;}
+.scan-msg{font-size:0.72rem;margin-top:10px;min-height:18px;}
+.scan-msg.ok{color:var(--accent);}
+.scan-msg.err{color:var(--red);}
+
+/* Table */
+.tbl-box{background:var(--surf);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.tbl-head{padding:12px 16px;border-bottom:1px solid var(--border);font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+table{width:100%;border-collapse:collapse;}
+th{background:#0a0f14;padding:9px 14px;text-align:left;font-size:0.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:0.78rem;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#0e1820;}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.62rem;background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.25);}
+.empty{text-align:center;padding:30px;color:var(--muted);font-size:0.78rem;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">ATTEND<span>AI</span></div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="user-info">Signed in as <strong id="student-name">{{ user_name }}</strong></div>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total Classes</div>
+      <div class="stat-val" id="s-total">—</div>
+      <div class="stat-sub">recorded days</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Present</div>
+      <div class="stat-val" id="s-present">—</div>
+      <div class="stat-sub">attendance marked</div>
+    </div>
+    <div class="stat blue">
+      <div class="stat-label">Attendance %</div>
+      <div class="stat-val" id="s-pct">—</div>
+      <div class="stat-sub">overall rate</div>
+    </div>
+  </div>
+
+  <!-- Scan -->
+  <div class="scan-section">
+    <div class="scan-title">Mark Attendance</div>
+    <div class="scan-sub">Start the face scan — look into the camera to verify your identity.</div>
+    <div class="scan-body">
+      <div>
+        <div class="cam-box">
+          <div class="cam-bar">
+            <div id="live-dot"></div>
+            <span class="cam-label-txt" id="cam-lbl">Camera inactive</span>
+          </div>
+          <div id="cam-ph" style="height:220px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.78rem;">Click Start Scan</div>
+          <img id="scan-stream" src="" alt="Scan" style="display:none;">
+        </div>
+        <div class="scan-actions">
+          <button class="btn btn-accent" id="btn-scan" onclick="startScan()">▶ Start Scan</button>
+          <button class="btn btn-ghost"  id="btn-stop" onclick="stopScan()" style="display:none">■ Stop</button>
+        </div>
+        <div class="scan-msg" id="scan-msg"></div>
+      </div>
+
+      <div class="scan-info">
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">My Info</div>
+        <div class="info-row"><span class="info-key">Name</span><span class="info-val" id="inf-name">—</span></div>
+        <div class="info-row"><span class="info-key">Roll No</span><span class="info-val" id="inf-roll">—</span></div>
+        <div class="info-row"><span class="info-key">Email</span><span class="info-val" id="inf-email">—</span></div>
+        <div class="info-row"><span class="info-key">Today</span><span class="info-val" id="inf-today">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance history -->
+  <div class="tbl-box">
+    <div class="tbl-head">Attendance History</div>
+    <table>
+      <thead><tr><th>#</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+      <tbody id="hist-body"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+async function api(url,opts={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});return r.json();}
+
+async function boot() {
+  const [info, history] = await Promise.all([
+    api('/student/api/my-info'),
+    api('/student/api/my-attendance')
+  ]);
+
+  document.getElementById('inf-name').textContent  = info.name  || '—';
+  document.getElementById('inf-roll').textContent  = info.roll_no || '—';
+  document.getElementById('inf-email').textContent = info.email || '—';
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayRec = history.find(r => r.date === today);
+  document.getElementById('inf-today').textContent = todayRec ? '✅ Present' : '—';
+
+  const total   = history.length;
+  const present = history.filter(r => r.status === 'Present').length;
+  const pct     = total ? Math.round(present/total*100) : 0;
+
+  document.getElementById('s-total').textContent   = total;
+  document.getElementById('s-present').textContent = present;
+  document.getElementById('s-pct').textContent     = pct + '%';
+
+  const body = document.getElementById('hist-body');
+  if (!history.length) {
+    body.innerHTML = '<tr><td colspan="4" class="empty">No attendance records yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = history.map((r,i) => `
+    <tr>
+      <td>${i+1}</td><td>${r.date}</td><td>${r.time}</td>
+      <td><span class="badge">${r.status}</span></td>
+    </tr>`).join('');
+}
+
+let scanActive = false;
+function startScan() {
+  scanActive = true;
+  document.getElementById('scan-stream').src = '/student/video-feed/scan?t=' + Date.now();
+  document.getElementById('scan-stream').style.display = 'block';
+  document.getElementById('cam-ph').style.display = 'none';
+  document.getElementById('live-dot').classList.add('on');
+  document.getElementById('cam-lbl').textContent = 'Scanning...';
+  document.getElementById('btn-scan').style.display = 'none';
+  document.getElementById('btn-stop').style.display = 'inline-block';
+  document.getElementById('scan-msg').textContent = '';
+
+  // Poll for attendance marked
+  const poll = setInterval(async () => {
+    if (!scanActive) { clearInterval(poll); return; }
+    const history = await api('/student/api/my-attendance');
+    const today = new Date().toISOString().split('T')[0];
+    const found = history.find(r => r.date === today);
+    if (found) {
+      clearInterval(poll);
+      document.getElementById('scan-msg').textContent = '✅ Attendance marked successfully!';
+      document.getElementById('scan-msg').className = 'scan-msg ok';
+      document.getElementById('inf-today').textContent = '✅ Present';
+      stopScan();
+      boot();
+    }
+  }, 3000);
+}
+
+function stopScan() {
+  scanActive = false;
+  document.getElementById('scan-stream').src = '';
+  document.getElementById('scan-stream').style.display = 'none';
+  document.getElementById('cam-ph').style.display = 'flex';
+  document.getElementById('live-dot').classList.remove('on');
+  document.getElementById('cam-lbl').textContent = 'Camera inactive';
+  document.getElementById('btn-scan').style.display = 'inline-block';
+  document.getElementById('btn-stop').style.display = 'none';
+}
+
+async function logout() {
+  await api('/api/auth/logout',{method:'POST'});
+  window.location.href='/login';
+}
+
+boot();
+</script>
+</body>
+</html>

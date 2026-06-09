@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendAI — Student Registration</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#080c10; --surf:#0e1419; --border:#1c2530; --accent:#00e5a0; --blue:#0077ff; --text:#c8d6e5; --muted:#4a6075; --red:#ff4560; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:30px 16px; }
+
+  .card {
+    background:var(--surf); border:1px solid var(--border);
+    border-radius:16px; padding:36px; width:100%; max-width:520px;
+  }
+
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:1.2rem; color:#fff; }
+  .logo span { color:var(--accent); }
+  .sub { font-size:0.7rem; color:var(--muted); margin-top:4px; margin-bottom:28px; }
+
+  .section-label {
+    font-size:0.6rem; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--muted); margin-bottom:12px; margin-top:24px;
+    padding-bottom:6px; border-bottom:1px solid var(--border);
+  }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  .field { margin-bottom:12px; }
+  .field label { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; display:block; margin-bottom:5px; }
+  .field input, .field select {
+    width:100%; padding:9px 12px; background:var(--bg);
+    border:1px solid var(--border); border-radius:7px;
+    color:var(--text); font-family:'DM Mono',monospace; font-size:0.82rem; outline:none;
+  }
+  .field input:focus, .field select:focus { border-color:var(--accent); }
+  .field select option { background:var(--bg); }
+
+  /* Camera */
+  .cam-box { background:#050709; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:10px; }
+  .cam-bar { display:flex; align-items:center; gap:8px; padding:9px 12px; background:#0a0f14; border-bottom:1px solid var(--border); }
+  #reg-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+  #reg-dot.on { background:var(--accent); box-shadow:0 0 6px var(--accent); animation:pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .cam-txt { font-size:0.62rem; color:var(--muted); }
+  #cam-placeholder { height:200px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:0.75rem; flex-direction:column; gap:8px; }
+  #cam-placeholder .icon { font-size:2rem; opacity:.3; }
+  #reg-stream { display:none; width:100%; max-height:260px; object-fit:contain; }
+
+  .capture-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .capture-progress { font-size:0.7rem; color:var(--muted); flex:1; }
+
+  /* Progress dots */
+  .dots { display:flex; gap:6px; margin-bottom:10px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--border); border:1px solid var(--muted); transition:.3s; }
+  .dot.filled { background:var(--accent); border-color:var(--accent); }
+
+  /* Buttons */
+  .btn { padding:8px 16px; border-radius:6px; border:none; cursor:pointer; font-family:'DM Mono',monospace; font-size:0.75rem; font-weight:500; transition:.15s; letter-spacing:.03em; }
+  .btn:hover { opacity:.85; transform:translateY(-1px); }
+  .btn-accent { background:var(--accent); color:#000; }
+  .btn-ghost  { background:var(--border); color:var(--text); }
+  .btn-blue   { background:var(--blue); color:#fff; }
+  .btn-full   { width:100%; padding:11px; font-size:0.85rem; margin-top:6px; }
+
+  .msg { font-size:0.72rem; min-height:16px; margin-top:10px; }
+  .msg.err { color:var(--red); }
+  .msg.ok  { color:var(--accent); }
+
+  .link { text-align:center; margin-top:18px; font-size:0.7rem; color:var(--muted); }
+  .link a { color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">ATTEND<span>AI</span></div>
+  <div class="sub">Student Self-Registration</div>
+
+  <!-- Personal Info -->
+  <div class="section-label">Personal Information</div>
+  <div class="grid2">
+    <div class="field"><label>Full Name</label><input id="name" placeholder="Your full name"></div>
+    <div class="field"><label>Roll Number</label><input id="roll" placeholder="e.g. CS-2023-01"></div>
+  </div>
+  <div class="field"><label>Email</label><input id="email" type="email" placeholder="your@email.com"></div>
+  <div class="field"><label>Password</label><input id="password" type="password" placeholder="min. 6 characters"></div>
+
+  <!-- Class Selection -->
+  <div class="section-label">Select Your Class</div>
+  <div class="field">
+    <label>Class (Teacher — Subject)</label>
+    <select id="class-select">
+      <option value="">Loading classes...</option>
+    </select>
+  </div>
+
+  <!-- Face Capture -->
+  <div class="section-label">Face Registration</div>
+  <div class="dots" id="reg-dots" style="display:flex;gap:5px;margin-bottom:10px;"></div>
+  <div class="cam-box">
+    <div class="cam-bar">
+      <div id="reg-dot"></div>
+      <span class="cam-txt" id="cam-status-txt">Camera off</span>
+    </div>
+    <div id="cam-placeholder">
+      <div class="icon">📷</div>
+      <span>Start camera to capture your face</span>
+    </div>
+    <img id="reg-stream" src="" alt="Camera">
+  </div>
+  <div class="capture-row">
+    <button class="btn btn-ghost" id="btn-start-cam" onclick="startCam()">Start Camera</button>
+    <button class="btn btn-blue"  id="btn-capture"   onclick="capture()" style="display:none">📸 Capture</button>
+    <span class="capture-progress" id="cap-msg">Capture your face 7 times from slightly different angles.</span>
+  </div>
+
+  <div class="msg" id="main-msg"></div>
+  <button class="btn btn-accent btn-full" onclick="registerStudent()">Complete Registration</button>
+
+  <div class="link">Already registered? <a href="/login">Sign in</a> &nbsp;|&nbsp; <a href="/register">Teacher? Register here</a></div>
+</div>
+
+<script>
+let capturesDone = 0;
+
+async function api(url, opts={}) {
+  const r = await fetch(url, {headers:{'Content-Type':'application/json'}, ...opts});
+  return r.json();
+}
+
+// Load classes
+async function loadClasses() {
+  const classes = await api('/api/classes/public');
+  const sel = document.getElementById('class-select');
+  if (!classes.length) {
+    sel.innerHTML = '<option value="">No classes available yet — ask your teacher</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">Select your class...</option>' +
+    classes.map(c =>
+      `<option value="${c.id}">${c.teacher_name} — ${c.name} (${c.subject})</option>`
+    ).join('');
+}
+
+// Create progress dots for 7 captures
+function initDots() {
+  const dotsContainer = document.getElementById('reg-dots');
+  dotsContainer.innerHTML = '';
+  for (let i = 1; i <= 7; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    dot.id = `dot-${i}`;
+    dotsContainer.appendChild(dot);
+  }
+}
+
+function updateDots(n) {
+  for (let i=1; i<=7; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    if (dot) {
+      dot.classList.toggle('filled', i <= n);
+    }
+  }
+}
+
+function startCam() {
+  document.getElementById('reg-stream').src = '/register-student/video-feed?t=' + Date.now();
+  document.getElementById('reg-stream').style.display = 'block';
+  document.getElementById('cam-placeholder').style.display = 'none';
+  document.getElementById('reg-dot').classList.add('on');
+  document.getElementById('cam-status-txt').textContent = 'Live — position your face';
+  document.getElementById('btn-start-cam').style.display = 'none';
+  document.getElementById('btn-capture').style.display = 'inline-block';
+  document.getElementById('cap-msg').textContent = 'Click Capture 7 times from slightly different angles.';
+}
+
+async function capture() {
+  if (capturesDone >= 7) {
+    document.getElementById('cap-msg').textContent = 'All 7 captures complete!';
+    return;
+  }
+  
+  const btn = document.getElementById('btn-capture');
+  btn.disabled = true;
+  
+  try {
+    const d = await api('/api/register-student/capture', {method:'POST', body:'{}'});
+    
+    if (!d) {
+      throw new Error('No response from server');
+    }
+    
+    capturesDone = d.captured !== undefined ? d.captured : capturesDone;
+    updateDots(capturesDone);
+    document.getElementById('cap-msg').textContent = d.message || 'Capture processed';
+
+    if (d.status === 'done') {
+      btn.style.display = 'none';
+      document.getElementById('cam-status-txt').textContent = '✅ All captures complete!';
+      document.getElementById('reg-dot').classList.remove('on');
+    } else {
+      btn.disabled = false;
+    }
+  } catch (err) {
+    console.error('Capture error:', err);
+    document.getElementById('cap-msg').textContent = `Error: ${err.message}`;
+    btn.disabled = false;
+  }
+}
+
+async function registerStudent() {
+  const name     = document.getElementById('name').value.trim();
+  const roll_no  = document.getElementById('roll').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const class_id = document.getElementById('class-select').value;
+  const msg      = document.getElementById('main-msg');
+
+  msg.className = 'msg';
+  if (!name || !roll_no || !email || !password) { msg.textContent='Fill in all fields.'; msg.className='msg err'; return; }
+  if (!class_id) { msg.textContent='Select a class.'; msg.className='msg err'; return; }
+  if (password.length < 6) { msg.textContent='Password must be at least 6 characters.'; msg.className='msg err'; return; }
+  if (capturesDone < 7) { msg.textContent='Complete face capture first (3 photos).'; msg.className='msg err'; return; }
+
+  const d = await api('/api/auth/register-student', {
+    method:'POST',
+    body: JSON.stringify({name, roll_no, email, password, class_id: parseInt(class_id)})
+  });
+
+  if (d.error) { msg.textContent=d.error; msg.className='msg err'; return; }
+  msg.textContent = d.message + ' Redirecting to login...';
+  msg.className = 'msg ok';
+  setTimeout(() => window.location.href='/login', 2000);
+}
+
+// Initialize on page load
+loadClasses();
+initDots();
+</script>
+</body>
+</html>

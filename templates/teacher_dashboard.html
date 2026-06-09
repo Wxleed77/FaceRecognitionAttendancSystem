@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendAI — Teacher Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#080c10; --surf:#0e1419; --surf2:#111820;
+  --border:#1c2530; --accent:#00e5a0; --blue:#0077ff;
+  --red:#ff4560; --yellow:#ffc145;
+  --text:#c8d6e5; --muted:#4a6075;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;display:flex;height:100vh;overflow:hidden;}
+
+/* Sidebar */
+.sidebar{width:220px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.brand{padding:20px 18px;border-bottom:1px solid var(--border);}
+.brand-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:#fff;}
+.brand-name span{color:var(--accent);}
+.brand-role{font-size:0.6rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.1em;}
+
+nav{flex:1;padding:12px 0;}
+.nav-section{font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;padding:14px 18px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 18px;cursor:pointer;font-size:0.78rem;color:var(--muted);transition:.15s;border-left:2px solid transparent;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(0,229,160,.05);}
+.nav-icon{font-size:1rem;width:18px;text-align:center;}
+
+.sidebar-footer{padding:14px 18px;border-top:1px solid var(--border);}
+.user-chip{font-size:0.7rem;color:var(--muted);margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-logout{width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem;cursor:pointer;transition:.15s;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surf);flex-shrink:0;}
+.page-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;}
+.date-chip{font-size:0.68rem;color:var(--muted);}
+
+.content{flex:1;overflow-y:auto;padding:24px 28px;}
+.content::-webkit-scrollbar{width:4px;}
+.content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* Panels (pages) */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:18px 16px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:.5;}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.yellow::before{background:var(--yellow);}
+.stat-label{font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;}
+
+/* Cards grid */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px;}
+.class-card{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:18px;cursor:pointer;transition:.15s;}
+.class-card:hover{border-color:var(--accent);background:var(--surf2);}
+.class-card.selected{border-color:var(--accent);}
+.cc-subject{font-size:0.62rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
+.cc-name{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:12px;}
+.cc-stats{display:flex;gap:14px;}
+.cc-stat{font-size:0.7rem;color:var(--muted);}
+.cc-stat strong{color:var(--text);}
+.cc-actions{display:flex;gap:6px;margin-top:12px;}
+
+/* Buttons */
+.btn{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.72rem;font-weight:500;transition:.15s;letter-spacing:.03em;}
+.btn:hover{opacity:.85;transform:translateY(-1px);}
+.btn-accent{background:var(--accent);color:#000;}
+.btn-ghost{background:var(--border);color:var(--text);}
+.btn-red{background:transparent;border:1px solid var(--red);color:var(--red);}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:0.65rem;}
+
+/* Two col layout */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}
+.one-col{margin-bottom:24px;}
+
+/* Chart container */
+.chart-box{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:18px;}
+.chart-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:14px;}
+.chart-wrap{position:relative;height:200px;}
+
+/* Table */
+.tbl-box{background:var(--surf);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.tbl-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.tbl-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+table{width:100%;border-collapse:collapse;}
+th{background:#0a0f14;padding:9px 14px;text-align:left;font-size:0.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:0.78rem;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#0e1820;}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.62rem;background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.25);}
+.badge-red{background:rgba(255,69,96,.1);color:var(--red);border-color:rgba(255,69,96,.25);}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:20px;}
+.field{margin-bottom:14px;}
+.field label{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;}
+.field input,.field select{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.82rem;outline:none;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.modal-footer{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+.modal-err{font-size:0.72rem;color:var(--red);min-height:16px;margin-top:8px;}
+
+/* Camera */
+.cam-box{background:#050709;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+.cam-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surf);border-bottom:1px solid var(--border);}
+#live-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+#live-dot.on{background:var(--accent);box-shadow:0 0 7px var(--accent);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.cam-label{font-size:0.65rem;color:var(--muted);}
+#cam-stream-att{display:block;width:100%;max-height:420px;object-fit:contain;}
+
+/* Cam registration */
+#reg-cam-stream{display:block;width:100%;border-radius:8px;margin-bottom:10px;}
+.capture-bar{display:flex;gap:8px;align-items:center;margin-bottom:4px;}
+.capture-progress{font-size:0.7rem;color:var(--muted);}
+
+/* Donut wrap */
+.donut-row{display:flex;align-items:center;gap:20px;}
+.donut-wrap{position:relative;width:120px;height:120px;flex-shrink:0;}
+.donut-legend{flex:1;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:0.72rem;margin-bottom:6px;}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:0.78rem;}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="brand">
+    <div class="brand-name">ATTEND<span>AI</span></div>
+    <div class="brand-role">Teacher Portal</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="nav('overview',this)"><span class="nav-icon">◉</span>Dashboard</div>
+    <div class="nav-section">Management</div>
+    <div class="nav-item" onclick="nav('classes',this)"><span class="nav-icon">⊞</span>Classes</div>
+    <div class="nav-item" onclick="nav('attendance',this)"><span class="nav-icon">✓</span>Attendance</div>
+    <div class="nav-section">Actions</div>
+    <div class="nav-item" onclick="nav('camera',this)"><span class="nav-icon">◎</span>Live Camera</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip" id="user-chip">Loading...</div>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="date-chip" id="date-chip"></div>
+  </div>
+
+  <div class="content">
+
+    <!-- Overview Panel -->
+    <div class="panel active" id="panel-overview">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">My Classes</div><div class="stat-val" id="ov-classes">—</div></div>
+        <div class="stat-card blue"><div class="stat-label">Total Students</div><div class="stat-val" id="ov-students">—</div></div>
+        <div class="stat-card"><div class="stat-label">Present Today</div><div class="stat-val" id="ov-present">—</div></div>
+        <div class="stat-card red"><div class="stat-label">Absent Today</div><div class="stat-val" id="ov-absent">—</div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="chart-box">
+          <div class="chart-title">Attendance — Last 7 Days</div>
+          <div class="chart-wrap"><canvas id="chart-weekly"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Today's Overview (All Classes)</div>
+          <div class="donut-row">
+            <div class="donut-wrap"><canvas id="chart-donut"></canvas></div>
+            <div class="donut-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span id="leg-present">Present: —</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div><span id="leg-absent">Absent: —</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tbl-box">
+        <div class="tbl-head"><span class="tbl-title">Today's Attendance</span></div>
+        <table>
+          <thead><tr><th>Name</th><th>Roll</th><th>Class</th><th>Time</th><th>Status</th></tr></thead>
+          <tbody id="ov-att-body"><tr><td colspan="5" class="empty-state">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Classes Panel -->
+    <div class="panel" id="panel-classes">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">Your Classes</div>
+        <button class="btn btn-accent" onclick="openModal('modal-add-class')">+ New Class</button>
+      </div>
+
+      <div class="cards-grid" id="class-cards">
+        <div class="empty-state">Loading classes...</div>
+      </div>
+
+      <!-- Students section (appears when class selected) -->
+      <div id="students-section" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">Students in <span id="sel-class-name" style="color:var(--accent)"></span></div>
+          </div>
+          <button class="btn btn-accent" onclick="openModal('modal-add-student')">+ Add Student</button>
+        </div>
+        <div class="tbl-box">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Roll No</th><th>Email</th><th>Action</th></tr></thead>
+            <tbody id="student-body"><tr><td colspan="5" class="empty-state">Select a class above.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Panel -->
+    <div class="panel" id="panel-attendance">
+      <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;">
+        <select id="att-class-filter" style="padding:8px 12px;background:var(--surf);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.78rem;">
+          <option value="">All Classes</option>
+        </select>
+        <input type="date" id="att-date-filter" style="padding:8px 12px;background:var(--surf);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.78rem;">
+        <button class="btn btn-ghost" onclick="loadAttendance()">Filter</button>
+      </div>
+      <div class="tbl-box">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Roll No</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+          <tbody id="att-body-main"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Camera Panel -->
+    <div class="panel" id="panel-camera">
+      <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select id="cam-class-select" style="padding:8px 12px;background:var(--surf);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.78rem;flex:1;max-width:280px;">
+          <option value="">Select a class</option>
+        </select>
+        <button class="btn btn-accent" id="btn-start-cam" onclick="startCamera()">▶ Start Attendance</button>
+        <button class="btn btn-ghost" id="btn-stop-cam" onclick="stopCamera()" style="display:none">■ Stop</button>
+      </div>
+      <div class="cam-box">
+        <div class="cam-bar">
+          <div id="live-dot"></div>
+          <span class="cam-label" id="cam-label-txt">Select class and press Start</span>
+        </div>
+        <img id="cam-stream-att" src="" alt="Camera" style="display:none;width:100%;max-height:480px;object-fit:contain;">
+        <div id="cam-placeholder" style="height:360px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.8rem;">Camera inactive</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- Add Class Modal -->
+<div class="overlay" id="modal-add-class">
+  <div class="modal">
+    <h3>Create New Class</h3>
+    <div class="field"><label>Class Name</label><input id="cls-name" placeholder="e.g. Section A"></div>
+    <div class="field"><label>Subject</label><input id="cls-subject" placeholder="e.g. Data Structures"></div>
+    <div class="modal-err" id="cls-err"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-class')">Cancel</button>
+      <button class="btn btn-accent" onclick="addClass()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="overlay" id="modal-add-student">
+  <div class="modal">
+    <h3>Register Student</h3>
+    <div class="field"><label>Full Name</label><input id="st-name" placeholder="Student name"></div>
+    <div class="field"><label>Roll Number</label><input id="st-roll" placeholder="e.g. CS-2021-01"></div>
+    <div class="field"><label>Email (for student login)</label><input id="st-email" type="email" placeholder="student@email.com"></div>
+    <div class="field"><label>Password</label><input id="st-pw" type="password" placeholder="Student's login password"></div>
+    <div style="margin-bottom:10px;margin-top:18px;">
+      <div style="font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Face Capture (<span id="reg-count">0</span>/7)</div>
+      <img id="reg-cam-stream" src="" alt="Camera" style="display:none;width:100%;border-radius:8px;margin-bottom:10px;max-height:260px;object-fit:contain;">
+      <div id="reg-cam-placeholder" style="height:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.75rem;margin-bottom:10px;">Click Start Camera to begin</div>
+      <div class="capture-bar">
+        <button class="btn btn-ghost btn-sm" id="btn-reg-cam" onclick="startRegCam()">Start Camera</button>
+        <button class="btn btn-blue btn-sm" id="btn-capture" onclick="captureFrame()" style="display:none">📸 Capture</button>
+        <span class="capture-progress" id="capture-msg"></span>
+      </div>
+    </div>
+    <div class="modal-err" id="st-err"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeStudentModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="registerStudent()">Register</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let classes       = [];
+let selectedClass = null;
+let weeklyChart   = null;
+let donutChart    = null;
+let regCamActive  = false;
+let capturesDone  = 0;
+
+// ── Nav ────────────────────────────────────────────────────────────────────────
+function nav(panel, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + panel).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('page-title').textContent =
+    {overview:'Dashboard',classes:'Classes',attendance:'Attendance',camera:'Live Camera'}[panel];
+  if (panel === 'attendance') loadAttendance();
+}
+
+// ── API helpers ────────────────────────────────────────────────────────────────
+async function api(url, opts={}) {
+  const r = await fetch(url, {headers:{'Content-Type':'application/json'}, ...opts});
+  return r.json();
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+async function boot() {
+  document.getElementById('date-chip').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  classes = await api('/teacher/api/classes');
+  renderClassCards();
+  populateClassSelects();
+
+  const today = await api('/teacher/api/attendance?date=' + todayStr());
+  renderOverviewTable(today);
+
+  const weekly = await api('/teacher/api/stats/weekly');
+  renderWeeklyChart(weekly);
+  renderDonut();
+
+  // Stats
+  let totalStudents = 0, totalPresent = 0, totalAbsent = 0;
+  classes.forEach(c => {
+    totalStudents += c.total || 0;
+    totalPresent  += c.present || 0;
+    totalAbsent   += c.absent || 0;
+  });
+  document.getElementById('ov-classes').textContent  = classes.length;
+  document.getElementById('ov-students').textContent = totalStudents;
+  document.getElementById('ov-present').textContent  = totalPresent;
+  document.getElementById('ov-absent').textContent   = totalAbsent;
+  document.getElementById('user-chip').textContent   = '{{ user_name }}';
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// ── Classes ────────────────────────────────────────────────────────────────────
+function renderClassCards() {
+  const grid = document.getElementById('class-cards');
+  if (!classes.length) {
+    grid.innerHTML = '<div class="empty-state">No classes yet. Create one!</div>';
+    return;
+  }
+  grid.innerHTML = classes.map(c => `
+    <div class="class-card ${selectedClass?.id===c.id?'selected':''}" onclick="selectClass(${c.id})">
+      <div class="cc-subject">${c.subject}</div>
+      <div class="cc-name">${c.name}</div>
+      <div class="cc-stats">
+        <div class="cc-stat">Students <strong>${c.total||0}</strong></div>
+        <div class="cc-stat">Present <strong style="color:var(--accent)">${c.present||0}</strong></div>
+        <div class="cc-stat">Absent <strong style="color:var(--red)">${c.absent||0}</strong></div>
+      </div>
+      <div class="cc-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" onclick="selectClass(${c.id})">View Students</button>
+        <button class="btn btn-red btn-sm" onclick="deleteClass(${c.id})">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+async function selectClass(id) {
+  selectedClass = classes.find(c => c.id === id);
+  renderClassCards();
+  document.getElementById('sel-class-name').textContent = selectedClass.name;
+  document.getElementById('students-section').style.display = 'block';
+  loadStudents(id);
+}
+
+async function loadStudents(class_id) {
+  const rows = await api(`/teacher/api/classes/${class_id}/students`);
+  const body = document.getElementById('student-body');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="5" class="empty-state">No students yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map((s,i) => `
+    <tr>
+      <td>${i+1}</td><td>${s.name}</td><td>${s.roll_no}</td><td>${s.email||'—'}</td>
+      <td><button class="btn btn-red btn-sm" onclick="deleteStudent(${s.id})">Remove</button></td>
+    </tr>`).join('');
+}
+
+async function addClass() {
+  const name    = document.getElementById('cls-name').value.trim();
+  const subject = document.getElementById('cls-subject').value.trim();
+  if (!name||!subject) { document.getElementById('cls-err').textContent='Both fields required.'; return; }
+  const d = await api('/teacher/api/classes',{method:'POST',body:JSON.stringify({name,subject})});
+  if (d.error) { document.getElementById('cls-err').textContent=d.error; return; }
+  classes.push({...d, total:0, present:0, absent:0});
+  renderClassCards();
+  populateClassSelects();
+  closeModal('modal-add-class');
+  document.getElementById('cls-name').value='';
+  document.getElementById('cls-subject').value='';
+  document.getElementById('cls-err').textContent='';
+}
+
+async function deleteClass(id) {
+  if (!confirm('Delete this class and all its data?')) return;
+  await api(`/teacher/api/classes/${id}`,{method:'DELETE'});
+  classes = classes.filter(c => c.id !== id);
+  if (selectedClass?.id === id) {
+    selectedClass = null;
+    document.getElementById('students-section').style.display='none';
+  }
+  renderClassCards();
+  populateClassSelects();
+}
+
+async function deleteStudent(id) {
+  if (!confirm('Remove this student?')) return;
+  await api(`/teacher/api/students/${id}`,{method:'DELETE'});
+  if (selectedClass) loadStudents(selectedClass.id);
+}
+
+// ── Student Registration ───────────────────────────────────────────────────────
+function startRegCam() {
+  regCamActive = true; capturesDone = 0;
+  document.getElementById('reg-cam-stream').src = '/teacher/video-feed/register?t=' + Date.now();
+  document.getElementById('reg-cam-stream').style.display = 'block';
+  document.getElementById('reg-cam-placeholder').style.display = 'none';
+  document.getElementById('btn-reg-cam').style.display = 'none';
+  document.getElementById('btn-capture').style.display = 'inline-block';
+  document.getElementById('capture-msg').textContent = 'Position face, then click Capture';
+  document.getElementById('reg-count').textContent = '0';
+}
+
+async function captureFrame() {
+  const d = await api('/teacher/api/capture-frame',{method:'POST',body:'{}'});
+  document.getElementById('capture-msg').textContent = d.message;
+  capturesDone = d.captured || capturesDone;
+  document.getElementById('reg-count').textContent = capturesDone;
+  if (d.status === 'done') {
+    document.getElementById('btn-capture').style.display = 'none';
+    document.getElementById('capture-msg').textContent = '✅ Face captured! Fill form and click Register.';
+  }
+}
+
+async function registerStudent() {
+  const name     = document.getElementById('st-name').value.trim();
+  const roll_no  = document.getElementById('st-roll').value.trim();
+  const email    = document.getElementById('st-email').value.trim();
+  const password = document.getElementById('st-pw').value;
+  const err      = document.getElementById('st-err');
+
+  if (!selectedClass) { err.textContent='Select a class first.'; return; }
+  if (!name||!roll_no||!email||!password) { err.textContent='All fields required.'; return; }
+  if (capturesDone < 7) { err.textContent='Complete face capture first (7 photos).'; return; }
+
+  const d = await api('/teacher/api/register-student',{
+    method:'POST',
+    body: JSON.stringify({name,roll_no,email,password,class_id:selectedClass.id})
+  });
+  if (d.error) { err.textContent=d.error; return; }
+  closeStudentModal();
+  loadStudents(selectedClass.id);
+  // Refresh class stats
+  classes = await api('/teacher/api/classes');
+  renderClassCards();
+}
+
+function closeStudentModal() {
+  closeModal('modal-add-student');
+  document.getElementById('reg-cam-stream').src='';
+  document.getElementById('reg-cam-stream').style.display='none';
+  document.getElementById('reg-cam-placeholder').style.display='flex';
+  document.getElementById('btn-reg-cam').style.display='inline-block';
+  document.getElementById('btn-capture').style.display='none';
+  document.getElementById('st-name').value='';
+  document.getElementById('st-roll').value='';
+  document.getElementById('st-email').value='';
+  document.getElementById('st-pw').value='';
+  document.getElementById('st-err').textContent='';
+  document.getElementById('capture-msg').textContent='';
+  document.getElementById('reg-count').textContent='0';
+  capturesDone=0; regCamActive=false;
+}
+
+// ── Attendance ─────────────────────────────────────────────────────────────────
+async function loadAttendance() {
+  const cls  = document.getElementById('att-class-filter').value;
+  const date = document.getElementById('att-date-filter').value;
+  let url = '/teacher/api/attendance?';
+  if (cls)  url += `class_id=${cls}&`;
+  if (date) url += `date=${date}`;
+  const rows = await api(url);
+  const body = document.getElementById('att-body-main');
+  if (!rows.length) { body.innerHTML='<tr><td colspan="6" class="empty-state">No records found.</td></tr>'; return; }
+  body.innerHTML = rows.map((r,i) => `
+    <tr>
+      <td>${i+1}</td><td>${r.student_name}</td><td>${r.roll_no}</td>
+      <td>${r.date}</td><td>${r.time}</td>
+      <td><span class="badge">${r.status}</span></td>
+    </tr>`).join('');
+}
+
+function renderOverviewTable(rows) {
+  const body = document.getElementById('ov-att-body');
+  if (!rows.length) { body.innerHTML='<tr><td colspan="5" class="empty-state">No attendance today.</td></tr>'; return; }
+  // Need class name — find from classes array
+  body.innerHTML = rows.map((r,i) => {
+    const cls = classes.find(c => c.id === r.class_id);
+    return `<tr>
+      <td>${r.student_name}</td><td>${r.roll_no}</td>
+      <td>${cls?.name||'—'}</td><td>${r.time}</td>
+      <td><span class="badge">Present</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Charts ─────────────────────────────────────────────────────────────────────
+function renderWeeklyChart(data) {
+  const reversed = [...data].reverse();
+  const labels = reversed.map(r => {
+    const d = new Date(r.date);
+    return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  });
+  const vals = reversed.map(r => r.cnt);
+
+  if (weeklyChart) weeklyChart.destroy();
+  weeklyChart = new Chart(document.getElementById('chart-weekly'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Present',
+        data: vals,
+        backgroundColor: 'rgba(0,229,160,0.25)',
+        borderColor: '#00e5a0',
+        borderWidth: 2,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color:'#4a6075', font:{size:10} }, grid:{ color:'#1c2530' } },
+        y: { ticks: { color:'#4a6075', font:{size:10} }, grid:{ color:'#1c2530' }, beginAtZero:true }
+      }
+    }
+  });
+}
+
+function renderDonut() {
+  let present=0, absent=0;
+  classes.forEach(c => { present+=c.present||0; absent+=c.absent||0; });
+  document.getElementById('leg-present').textContent = `Present: ${present}`;
+  document.getElementById('leg-absent').textContent  = `Absent:  ${absent}`;
+
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('chart-donut'), {
+    type:'doughnut',
+    data:{
+      labels:['Present','Absent'],
+      datasets:[{
+        data:[present||1, absent],
+        backgroundColor:['rgba(0,229,160,0.8)','rgba(255,69,96,0.7)'],
+        borderColor:['#00e5a0','#ff4560'],
+        borderWidth:2,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'70%',
+      plugins:{ legend:{display:false} }
+    }
+  });
+}
+
+// ── Camera ─────────────────────────────────────────────────────────────────────
+function startCamera() {
+  const cid = document.getElementById('cam-class-select').value;
+  if (!cid) { alert('Select a class first.'); return; }
+  document.getElementById('cam-stream-att').src = `/teacher/video-feed/${cid}?t=` + Date.now();
+  document.getElementById('cam-stream-att').style.display = 'block';
+  document.getElementById('cam-placeholder').style.display = 'none';
+  document.getElementById('live-dot').classList.add('on');
+  document.getElementById('cam-label-txt').textContent = '🎥 Recognizing faces...';
+  document.getElementById('btn-start-cam').style.display = 'none';
+  document.getElementById('btn-stop-cam').style.display = 'inline-block';
+}
+
+function stopCamera() {
+  document.getElementById('cam-stream-att').src = '';
+  document.getElementById('cam-stream-att').style.display = 'none';
+  document.getElementById('cam-placeholder').style.display = 'flex';
+  document.getElementById('live-dot').classList.remove('on');
+  document.getElementById('cam-label-txt').textContent = 'Select class and press Start';
+  document.getElementById('btn-start-cam').style.display = 'inline-block';
+  document.getElementById('btn-stop-cam').style.display = 'none';
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function populateClassSelects() {
+  ['att-class-filter','cam-class-select'].forEach(id => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = id==='att-class-filter'
+      ? '<option value="">All Classes</option>'
+      : '<option value="">Select a class</option>';
+    classes.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value=c.id; opt.textContent=`${c.name} — ${c.subject}`;
+      sel.appendChild(opt);
+    });
+    sel.value = prev;
+  });
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function logout() {
+  await api('/api/auth/logout',{method:'POST'});
+  window.location.href='/login';
+}
+
+// Click outside modal to close
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) { if(o.id==='modal-add-student') closeStudentModal(); else closeModal(o.id); }});
+});
+
+setInterval(async () => {
+  classes = await api('/teacher/api/classes');
+  renderClassCards();
+  let p=0,a=0; classes.forEach(c=>{p+=c.present||0;a+=c.absent||0;});
+  document.getElementById('ov-present').textContent=p;
+  document.getElementById('ov-absent').textContent=a;
+}, 15000);
+
+boot();
+</script>
+</body>
+</html>

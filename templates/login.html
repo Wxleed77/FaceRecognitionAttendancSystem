@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendAI — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#080c10; --surf:#0e1419; --border:#1c2530; --accent:#00e5a0; --text:#c8d6e5; --muted:#4a6075; --red:#ff4560; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+
+  .card {
+    background:var(--surf); border:1px solid var(--border);
+    border-radius:16px; padding:40px 36px; width:100%; max-width:420px;
+  }
+
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:1.5rem; color:#fff; margin-bottom:6px; }
+  .logo span { color:var(--accent); }
+  .sub { font-size:0.72rem; color:var(--muted); margin-bottom:32px; }
+
+  /* Tabs */
+  .tabs { display:flex; gap:0; margin-bottom:28px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .tab {
+    flex:1; padding:9px; text-align:center; cursor:pointer;
+    font-size:0.72rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); transition:.2s;
+  }
+  .tab.active { background:var(--accent); color:#000; font-weight:600; }
+
+  label { font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; display:block; margin-bottom:6px; margin-top:16px; }
+
+  input {
+    width:100%; padding:10px 14px; background:var(--bg);
+    border:1px solid var(--border); border-radius:8px;
+    color:var(--text); font-family:'DM Mono',monospace; font-size:0.85rem;
+    outline:none; transition:.2s;
+  }
+  input:focus { border-color:var(--accent); }
+
+  button {
+    width:100%; margin-top:24px; padding:12px;
+    background:var(--accent); color:#000; border:none; border-radius:8px;
+    font-family:'DM Mono',monospace; font-size:0.85rem; font-weight:600;
+    cursor:pointer; letter-spacing:.05em; transition:.15s;
+  }
+  button:hover { opacity:.88; }
+
+  .err { margin-top:14px; font-size:0.75rem; color:var(--red); text-align:center; min-height:18px; }
+  .link { text-align:center; margin-top:20px; font-size:0.72rem; color:var(--muted); }
+  .link a { color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">ATTEND<span>AI</span></div>
+  <div class="sub">Face Recognition Attendance System</div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="setRole('teacher',this)">Teacher</div>
+    <div class="tab" onclick="setRole('student',this)">Student</div>
+  </div>
+
+  <label>Email</label>
+  <input type="email" id="email" placeholder="your@email.com">
+
+  <label>Password</label>
+  <input type="password" id="password" placeholder="••••••••">
+
+  <button onclick="login()">Sign In</button>
+  <div class="err" id="err"></div>
+  <div class="link" id="reg-link">New teacher? <a href="/register">Create account</a></div>
+  <div class="link" id="student-reg-link" style="display:none">New student? <a href="/register-student">Register here</a></div>
+</div>
+
+<script>
+  let role = 'teacher';
+  function setRole(r, el) {
+    role = r;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('reg-link').style.display         = r === 'teacher' ? 'block' : 'none';
+    document.getElementById('student-reg-link').style.display = r === 'student'  ? 'block' : 'none';
+    document.getElementById('err').textContent = '';
+  }
+
+  async function login() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const err      = document.getElementById('err');
+    if (!email || !password) { err.textContent = 'Fill in all fields.'; return; }
+    const r = await fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password, role})
+    });
+    const d = await r.json();
+    if (d.redirect) window.location.href = d.redirect;
+    else err.textContent = d.error || 'Login failed.';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+</script>
+</body>
+</html>
