@@ -329,6 +329,13 @@ function nav(panel, el) {
   document.getElementById('page-title').textContent =
     {overview:'Dashboard',classes:'Classes',attendance:'Attendance',camera:'Live Camera'}[panel];
   if (panel === 'attendance') loadAttendance();
+  // Ensure charts recompute sizes when overview becomes visible
+  if (panel === 'overview') {
+    setTimeout(() => {
+      try { weeklyChart?.resize(); } catch(e){}
+      try { donutChart?.resize(); } catch(e){}
+    }, 60);
+  }
 }
 
 // ── API helpers ────────────────────────────────────────────────────────────────
