@@ -18,15 +18,6 @@ A modern, intelligent attendance tracking system using **AI-powered face recogni
 | **Role-Based Access** | Separate dashboards for Students & Teachers |
 | **Real-Time Processing** | Processes every 4th frame for optimal speed/accuracy |
 
-## 🔄 Old vs New Approach
-
-| Aspect | Old System | This System |
-|--------|-----------|------------|
-| Face Engine | DeepFace (heavy TF) | **InsightFace (fast)** |
-| Photos Required | 30+ per student | **7 per student** |
-| Recognition Speed | Dataset scan every frame | **Pre-loaded embeddings** |
-| UI Responsiveness | Freezes during recognition | **Threaded — Never freezes** |
-| Similarity Threshold | Path-based lookup | **0.40 (tunable)** |
 
 ## 📋 Requirements
 
@@ -159,26 +150,6 @@ AI-Attendance-System/
     └── js/
 ```
 
-## 🔐 How Database is Handled
-
-### During GitHub Upload
-- ❌ **`database/` folder is NOT uploaded** — It contains your local SQLite database
-- ✅ **Database schema is in `database.py`** — Users create a fresh database on first run
-
-### When Someone Clones Your Repo
-1. They run `python app.py`
-2. The app automatically creates:
-   - Empty `database/attendance.db` (via `database.py`)
-   - All required tables (Students, Attendance, etc.)
-3. They register students locally with `python register.py`
-4. Each installation has its own isolated database ✅
-
-### Database Files Excluded
-```
-database/*.db         # SQLite files
-database/*.sqlite3    # SQLite files
-dataset/              # Training data
-```
 
 ## 🎯 API Endpoints
 
